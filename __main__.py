@@ -47,11 +47,20 @@ stack = pulumi.get_stack()
 repo = awsx.ecr.Repository("grocery_list_repo")
 
 # Build and publish our application's container image from ./fullstack-pulumi-mern-digitalocean to the ECR repository
-shopping_app_image = awsx.ecr.Image(
-    "grocery_list_image",
-    repository_url=repo.url,
-    path="./fullstack-pulumi-mern-digitalocean")
+# shopping_app_image = awsx.ecr.Image(
+#     "grocery_list_image",
+#     repository_url=repo.url,
+#     path="./fullstack-pulumi-mern-digitalocean")
 
+frontend_image = awsx.ecr.Image(
+    "grocery_frontend_image",
+    repository_url=repo.url,
+    path="./fullstack-pulumi-mern-digitalocean/frontend")
+
+backend_image = awsx.ecr.Image(
+    "grocery_backend_image",
+    repository_url=repo.url,
+    path="./fullstack-pulumi-mern-digitalocean/backend")
 # shopping_app_container = docker.Container("shopping_app_container",
 #     image=shopping_app_image.image_uri,
 #     ports=[{
@@ -79,7 +88,7 @@ frontend_service = awsx.ecs.FargateService(
     cluster=cluster.arn,
     task_definition_args=awsx.ecs.FargateServiceTaskDefinitionArgs(
         container=awsx.ecs.TaskDefinitionContainerDefinitionArgs(
-            image=shopping_app_image.image_uri,
+            image=frontend_image.image_uri,
             cpu=cpu,
             memory=memory,
             essential=True,
@@ -93,7 +102,7 @@ frontend_service = awsx.ecs.FargateService(
             },
             {
                 "name":"VITE_BACKEND_URL",
-                "value":"http://localhost:8000"
+                "value":Output.concat("http://", backend_lb.load_balancer.dns_name)
             },
             ],
         ),    
@@ -110,13 +119,13 @@ backend_service = awsx.ecs.FargateService(
     cluster=cluster.arn,
     task_definition_args=awsx.ecs.FargateServiceTaskDefinitionArgs(
         container=awsx.ecs.TaskDefinitionContainerDefinitionArgs(
-            image=shopping_app_image.image_uri,
+            image=backend_image.image_uri,
             cpu=cpu,
             memory=memory,
             essential=True,
             port_mappings=[awsx.ecs.TaskDefinitionPortMappingArgs(
                 container_port=container_port,
-                target_group=frontend_lb.default_target_group,
+                target_group=backend_lb.default_target_group,
             )],
             environment=[{
                 "name":"DATABASE_URL",
@@ -133,5 +142,6 @@ backend_service = awsx.ecs.FargateService(
 )
 
 # The URL at which the container's HTTP endpoint will be available
-pulumi.export("url", Output.concat("http://", frontend_lb.load_balancer.dns_name))
+pulumi.export("frontend url", Output.concat("http://", backend_lb.load_balancer.dns_name))
+pulumi.export("backend url", Output.concat("http://", frontend_lb.load_balancer.dns_name))
 pulumi.export("cluster name", cluster.id)
