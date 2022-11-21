@@ -2,6 +2,8 @@
 This is an example of a MERN stack deployed on AWS Fargate and MongoDB Atlas. 
 
 ## Instructions
-- Export AWS credentials
-- Export MongoDB Cloud credentials
-- Set MongdoDB Cloud org value in config
+- Export [AWS credentials](https://www.pulumi.com/registry/packages/aws/installation-configuration/)
+- Export [MongoDB Cloud credentials](https://www.pulumi.com/registry/packages/mongodbatlas/installation-configuration/)
+- Set MongoDB Cloud org value in Pulumi config `pulumi config set orgID [value]`
+- Set DB username in Pulumi config `pulumi config set dbUser [value]`
+- Set DB password in Pulumi config `pulumi config set dbPassword [value] --secret`

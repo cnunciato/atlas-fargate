@@ -1,24 +1,22 @@
-"""An AWS Python Pulumi program"""
+"""An AWS + MongoDB Cloud Python Pulumi program"""
 
-import os
+import re
 import pulumi
 from pulumi import Output
-import pulumi_docker as docker
 import pulumi_aws as aws
 import pulumi_awsx as awsx
 import pulumi_mongodbatlas as mongodb
-import re
 
 
-# get configuration
+# Get configuration
 config = pulumi.Config()
-frontend_port = config.require_int("frontendPort")
-backend_port = config.require_int("backendPort")
-mongo_port = config.require_int("mongoPort")
-mongo_host = config.require("mongoHost") # Note that strings are the default, so it's not `config.require_str`, just `config.require`.
-database = config.require("database")
-node_environment = config.require("nodeEnvironment")
-protocol = config.require("protocol")
+# frontend_port = config.require_int("frontendPort")
+# backend_port = config.require_int("backendPort")
+# mongo_port = config.require_int("mongoPort")
+# mongo_host = config.require("mongoHost") # Note that strings are the default, so it's not `config.require_str`, just `config.require`.
+# database = config.require("database")
+# node_environment = config.require("nodeEnvironment")
+# protocol = config.require("protocol")
 
 # AWS configs
 container_port = config.get_int("containerPort", 80)
@@ -26,40 +24,16 @@ cpu = config.get_int("cpu", 1024)
 memory = config.get_int("memory", 1024)
 
 # MongoDB Atlas configs
-db_username = config.get("dbUser", "test-acc-username")
-db_password = config.get_secret_object("dbPassword", "test-acc-password")
-atlas_org_id = config.get("orgID", "635a171e8eed17676af01b5a")
+db_username = config.get("dbUser", "test-username")
+db_password = config.get_secret_object("dbPassword", "test-password")
+atlas_org_id = config.get("orgID")
 
 stack = pulumi.get_stack()
-
-# network = docker.Network("network", name=f"services-{stack}")
-
-# # Local MongoDB Community container image
-# mongo_image = docker.RemoteImage("mongo_image",
-#     name='mongo',
-#     keep_locally=True
-# )
-
-# mongo_local_container = docker.Container("mongo_local_container",
-#     image=mongo_image.latest,
-#     ports=[{
-#         "internal": 27017,
-#         "external": 27017
-#     }],
-#     networks_advanced=[docker.ContainerNetworksAdvancedArgs(
-#         name=network.name
-#     )],
-# )
 
 # An ECR repository to store our application's container image
 repo = awsx.ecr.Repository("grocery_list_repo")
 
-# Build and publish our application's container image from ./fullstack-pulumi-mern-digitalocean to the ECR repository
-# shopping_app_image = awsx.ecr.Image(
-#     "grocery_list_image",
-#     repository_url=repo.url,
-#     path="./fullstack-pulumi-mern-digitalocean")
-
+# Build and publish our application's Dockerfile from /app/frontend and /app/backend to the ECR repository
 frontend_image = awsx.ecr.Image(
     "grocery_frontend_image",
     repository_url=repo.url,
@@ -69,20 +43,6 @@ backend_image = awsx.ecr.Image(
     "grocery_backend_image",
     repository_url=repo.url,
     path="./app/backend")
-# shopping_app_container = docker.Container("shopping_app_container",
-#     image=shopping_app_image.image_uri,
-#     ports=[{
-#         "internal": 5173,
-#         "external": 5173
-#     }],
-#     networks_advanced=[docker.ContainerNetworksAdvancedArgs(
-#         name=network.name
-#     )],
-#     envs=[
-#         "DATABASE_URL=mongodb+srv://admin:admin-password@pulumi-cluster.sgpqtad.mongodb.net/?retryWrites=true",
-#     ],
-# )
-
 
 # Create MongoDB Project
 mongo_project = mongodb.Project("mongo_project", org_id=atlas_org_id)
@@ -134,11 +94,11 @@ mongo_user = mongodb.DatabaseUser("db_user",
 cluster = aws.ecs.Cluster("cluster")
 
 # An ALB to serve the frontend service to the internet
-frontend_lb = awsx.lb.ApplicationLoadBalancer("frontend-lb")
+grocery_lb = awsx.lb.ApplicationLoadBalancer("grocery-lb")
 
 # Deploy an ECS Service on Fargate to host the application container
 frontend_service = awsx.ecs.FargateService(
-    "frontend-service",
+    "grocery-service",
     cluster=cluster.arn,
     task_definition_args=awsx.ecs.FargateServiceTaskDefinitionArgs(
         containers={
@@ -149,9 +109,10 @@ frontend_service = awsx.ecs.FargateService(
                 essential=True,
                 port_mappings=[awsx.ecs.TaskDefinitionPortMappingArgs(
                     container_port=container_port,
-                    target_group=frontend_lb.default_target_group,
+                    target_group=grocery_lb.default_target_group,
                 )],
                 environment=[{
+                    # Unused unless running dev server
                     "name":"VITE_BACKEND_URL",
                     "value":"http://localhost:8000" 
                 },
@@ -179,7 +140,6 @@ frontend_service = awsx.ecs.FargateService(
 )
 
 
-
 # MongoDB Atlas exports
 pulumi.export("mongo cluster id", mongo_cluster.cluster_id)
 pulumi.export("mongo srv address", mongo_cluster.srv_address)
@@ -187,5 +147,6 @@ pulumi.export("mongo connection string",
     Output.format("mongodb+srv://{0}:{1}@{2}", db_username, db_password, 
     Output.all(mongo_cluster.srv_address).apply(lambda v: v[0].split("//"))[1])
 )
-pulumi.export("frontend url", Output.concat("http://", frontend_lb.load_balancer.dns_name))
-pulumi.export("cluster name", cluster.id)
+# AWS exports
+pulumi.export("app url", Output.concat("http://", grocery_lb.load_balancer.dns_name))
+pulumi.export("ecs cluster", cluster.id)
