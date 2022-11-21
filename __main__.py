@@ -182,14 +182,10 @@ frontend_service = awsx.ecs.FargateService(
 
 # MongoDB Atlas exports
 pulumi.export("mongo cluster id", mongo_cluster.cluster_id)
-pulumi.export("mongo uri", mongo_cluster.mongo_uri)
 pulumi.export("mongo srv address", mongo_cluster.srv_address)
 pulumi.export("mongo connection string", 
     Output.format("mongodb+srv://{0}:{1}@{2}", db_username, db_password, 
     Output.all(mongo_cluster.srv_address).apply(lambda v: v[0].split("//"))[1])
 )
-# pulumi.export("name", mongo_cluster.get("mongo_cluster", mongo_cluster.id).name)
-# The URL at which the container's HTTP endpoint will be available
-# pulumi.export("backend url", Output.concat("http://", backend_lb.load_balancer.dns_name))
 pulumi.export("frontend url", Output.concat("http://", frontend_lb.load_balancer.dns_name))
 pulumi.export("cluster name", cluster.id)
