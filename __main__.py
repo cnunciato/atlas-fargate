@@ -7,6 +7,7 @@ import pulumi_docker as docker
 import pulumi_aws as aws
 import pulumi_awsx as awsx
 import pulumi_mongodbatlas as mongodb
+import re
 
 
 # get configuration
@@ -83,14 +84,16 @@ backend_image = awsx.ecr.Image(
 # )
 
 
-# Create MongoDB Project and Free Tier cluster
+# Create MongoDB Project
 mongo_project = mongodb.Project("mongo_project", org_id="635a171e8eed17676af01b5a")
 
+# Open access to all IPs
 mongo_acl = mongodb.ProjectIpAccessList("mongo_acl",
     cidr_block="0.0.0.0/0",
     comment="Open access for backend",
     project_id=mongo_project.id,)
 
+# Create Free Tier Project
 mongo_cluster = mongodb.Cluster("mongo-cluster",
     backing_provider_name="AWS",
     project_id=mongo_project.id,
@@ -98,6 +101,7 @@ mongo_cluster = mongodb.Cluster("mongo-cluster",
     provider_name="TENANT",
     provider_region_name="US_WEST_2")
 
+# Create Database user and give access to the cluster and database
 mongo_user = mongodb.DatabaseUser("db_user",
     auth_database_name="admin",
     labels=[mongodb.DatabaseUserLabelArgs(
@@ -118,7 +122,8 @@ mongo_user = mongodb.DatabaseUser("db_user",
     ],
     scopes=[
         mongodb.DatabaseUserScopeArgs(
-            name=mongo_cluster.cluster_id,
+            # Extracts the cluster name to add to database scopes
+            name=Output.all(mongo_cluster.srv_address).apply(lambda v: re.split("\.|\/\/", v[0])[1]),
             type="CLUSTER",
         ),
     ],
@@ -130,9 +135,6 @@ cluster = aws.ecs.Cluster("cluster")
 
 # An ALB to serve the frontend service to the internet
 frontend_lb = awsx.lb.ApplicationLoadBalancer("frontend-lb")
-
-# # An ALB to serve the backend service to the internet
-# backend_lb = awsx.lb.ApplicationLoadBalancer("backend-lb")
 
 # Deploy an ECS Service on Fargate to host the application container
 frontend_service = awsx.ecs.FargateService(
@@ -150,12 +152,8 @@ frontend_service = awsx.ecs.FargateService(
                     target_group=frontend_lb.default_target_group,
                 )],
                 environment=[{
-                #     "name":"DATABASE_URL",
-                #     "value":"mongodb+srv://admin:admin-password@pulumi-cluster.sgpqtad.mongodb.net/?retryWrites=true"
-                # },
-                # {
                     "name":"VITE_BACKEND_URL",
-                    "value":"http://localhost:8000" #Output.concat("http://", backend_lb.load_balancer.dns_name,":80")
+                    "value":"http://localhost:8000" 
                 },
                 ],
             ),
@@ -179,34 +177,6 @@ frontend_service = awsx.ecs.FargateService(
     ),
     desired_count=1
 )
-
-# # Deploy an ECS Service on Fargate to host the application container
-# backend_service = awsx.ecs.FargateService(
-#     "backend-service",
-#     cluster=cluster.arn,
-#     task_definition_args=awsx.ecs.FargateServiceTaskDefinitionArgs(
-#         container=awsx.ecs.TaskDefinitionContainerDefinitionArgs(
-#             image=backend_image.image_uri,
-#             cpu=cpu,
-#             memory=memory,
-#             essential=True,
-#             port_mappings=[awsx.ecs.TaskDefinitionPortMappingArgs(
-#                 container_port=container_port,
-#                 target_group=backend_lb.default_target_group,
-#             )],
-#             environment=[{
-#                 "name":"DATABASE_URL",
-#                 "value":"mongodb+srv://admin:admin-password@pulumi-cluster.sgpqtad.mongodb.net/?retryWrites=true"
-#             },
-#             {
-#                 "name":"VITE_BACKEND_URL",
-#                 "value":"http://localhost:8000"
-#             },
-#             ],
-#         ),    
-#     ),
-#     desired_count=1
-# )
 
 
 
