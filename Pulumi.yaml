@@ -1,5 +1,5 @@
-name: mongo-aws
-description: A minimal AWS Python Pulumi program
+name: atlas-fargate
+description: A Pulumi program to deploy a MERN stack on Atlas and Fargate
 runtime:
     name: python
     options:

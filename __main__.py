@@ -26,9 +26,9 @@ cpu = config.get_int("cpu", 1024)
 memory = config.get_int("memory", 1024)
 
 # MongoDB Atlas configs
-db_username = config.get_object("dbUser", "test-acc-username")
+db_username = config.get("dbUser", "test-acc-username")
 db_password = config.get_secret_object("dbPassword", "test-acc-password")
-atlas_org_id = config.get_object("orgID", "635a171e8eed17676af01b5a")
+atlas_org_id = config.get("orgID", "635a171e8eed17676af01b5a")
 
 stack = pulumi.get_stack()
 
@@ -85,7 +85,7 @@ backend_image = awsx.ecr.Image(
 
 
 # Create MongoDB Project
-mongo_project = mongodb.Project("mongo_project", org_id="635a171e8eed17676af01b5a")
+mongo_project = mongodb.Project("mongo_project", org_id=atlas_org_id)
 
 # Open access to all IPs
 mongo_acl = mongodb.ProjectIpAccessList("mongo_acl",
