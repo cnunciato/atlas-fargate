@@ -1,0 +1,6 @@
+name: mongo-aws
+description: A minimal AWS Python Pulumi program
+runtime:
+    name: python
+    options:
+        virtualenv: venv

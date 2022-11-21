@@ -1,0 +1,22 @@
+{
+    "name": "fullstack-pulumi-mern-digitalocean",
+    "version": "0.0.1",
+    "private": true,
+    "dependencies": {
+        "@vitejs/plugin-react": "^2.2.0",
+        "concurrently": "^7.0.0",
+        "express": "^4.18.2",
+        "mongodb": "^4.11.0",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "tsc": "^2.0.4",
+        "typescript": "^4.8.4",
+        "vite": "^3.2.3"
+    },
+    "scripts": {
+        "dev": "concurrently 'npm -C backend run dev' 'npm -C frontend run dev'"
+    },
+    "devDependencies": {
+        "ts-node-dev": "^2.0.0"
+    }
+}
