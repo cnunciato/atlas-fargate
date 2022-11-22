@@ -10,13 +10,6 @@ import pulumi_mongodbatlas as mongodb
 
 # Get configuration
 config = pulumi.Config()
-# frontend_port = config.require_int("frontendPort")
-# backend_port = config.require_int("backendPort")
-# mongo_port = config.require_int("mongoPort")
-# mongo_host = config.require("mongoHost") # Note that strings are the default, so it's not `config.require_str`, just `config.require`.
-# database = config.require("database")
-# node_environment = config.require("nodeEnvironment")
-# protocol = config.require("protocol")
 
 # AWS configs
 container_port = config.get_int("containerPort", 80)
@@ -53,7 +46,7 @@ mongo_acl = mongodb.ProjectIpAccessList("mongo_acl",
     comment="Open access for backend",
     project_id=mongo_project.id,)
 
-# Create Free Tier Project
+# Create Free Tier cluster
 mongo_cluster = mongodb.Cluster("mongo-cluster",
     backing_provider_name="AWS",
     project_id=mongo_project.id,
@@ -87,17 +80,18 @@ mongo_user = mongodb.DatabaseUser("db_user",
             type="CLUSTER",
         ),
     ],
-    username=db_username)
+    username=db_username
+)
 
 
 # An ECS cluster to deploy into
 cluster = aws.ecs.Cluster("cluster")
 
 # An ALB to serve the frontend service to the internet
-grocery_lb = awsx.lb.ApplicationLoadBalancer("grocery-lb")
+lb = awsx.lb.ApplicationLoadBalancer("grocery-lb")
 
-# Deploy an ECS Service on Fargate to host the application container
-frontend_service = awsx.ecs.FargateService(
+# Deploy an ECS Service on Fargate to host the application containers
+service = awsx.ecs.FargateService(
     "grocery-service",
     cluster=cluster.arn,
     task_definition_args=awsx.ecs.FargateServiceTaskDefinitionArgs(
@@ -109,7 +103,7 @@ frontend_service = awsx.ecs.FargateService(
                 essential=True,
                 port_mappings=[awsx.ecs.TaskDefinitionPortMappingArgs(
                     container_port=container_port,
-                    target_group=grocery_lb.default_target_group,
+                    target_group=lb.default_target_group,
                 )],
                 environment=[{
                     # Unused unless running dev server
@@ -142,11 +136,11 @@ frontend_service = awsx.ecs.FargateService(
 
 # MongoDB Atlas exports
 pulumi.export("mongo cluster id", mongo_cluster.cluster_id)
-pulumi.export("mongo srv address", mongo_cluster.srv_address)
+pulumi.export("mongo url", mongo_cluster.srv_address)
 pulumi.export("mongo connection string", 
     Output.format("mongodb+srv://{0}:{1}@{2}", db_username, db_password, 
-    Output.all(mongo_cluster.srv_address).apply(lambda v: v[0].split("//"))[1])
+        Output.all(mongo_cluster.srv_address).apply(lambda v: v[0].split("//"))[1])
 )
 # AWS exports
-pulumi.export("app url", Output.concat("http://", grocery_lb.load_balancer.dns_name))
+pulumi.export("app url", Output.concat("http://", lb.load_balancer.dns_name))
 pulumi.export("ecs cluster", cluster.id)
