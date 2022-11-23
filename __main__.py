@@ -94,6 +94,7 @@ lb = awsx.lb.ApplicationLoadBalancer("grocery-lb")
 service = awsx.ecs.FargateService(
     "grocery-service",
     cluster=cluster.arn,
+    assign_public_ip=True,
     task_definition_args=awsx.ecs.FargateServiceTaskDefinitionArgs(
         containers={
             "front": awsx.ecs.TaskDefinitionContainerDefinitionArgs(
