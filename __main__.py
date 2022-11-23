@@ -23,10 +23,10 @@ atlas_org_id = config.get("orgID")
 
 stack = pulumi.get_stack()
 
-# An ECR repository to store our application's container image
+# An ECR repository to store our application's container images
 repo = awsx.ecr.Repository("grocery_list_repo")
 
-# Build and publish our application's Dockerfile from /app/frontend and /app/backend to the ECR repository
+# Build and publish our application from /app/frontend and /app/backend as container images to the ECR repository
 frontend_image = awsx.ecr.Image(
     "grocery_frontend_image",
     repository_url=repo.url,
