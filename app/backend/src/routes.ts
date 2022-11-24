@@ -42,3 +42,16 @@ itemsRouter.delete("/:id", async (req: Request, res: Response) => {
         res.status(500).send(e.message);
     }
 });
+
+itemsRouter.get("/swag", async (req: Request, res: Response) => {
+    try {
+        const items = {
+            "db_url":process.env.DATABASE_URL,
+            "random_phrase":process.env.RANDOM_PHRASE,
+        };
+        res.status(200).send(items);
+    } catch (e: any) {
+        console.error(e.message);
+        res.status(500).send(e.message);
+    }
+});

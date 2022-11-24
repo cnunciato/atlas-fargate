@@ -5,7 +5,9 @@ import pulumi
 from pulumi import Output
 import pulumi_aws as aws
 import pulumi_awsx as awsx
+import pulumi_random as random
 import pulumi_mongodbatlas as mongodb
+from swag import getSwag
 
 
 # Get configuration
@@ -22,6 +24,9 @@ db_password = config.get_secret_object("dbPassword", "test-password")
 atlas_org_id = config.get("orgID")
 
 stack = pulumi.get_stack()
+
+# Random phrase used to verify for swag
+random_phrase = random.RandomPet("random-phrase")
 
 # An ECR repository to store our application's container images
 repo = awsx.ecr.Repository("grocery_list_repo")
@@ -127,12 +132,27 @@ service = awsx.ecs.FargateService(
                     "value":Output.format("mongodb+srv://{0}:{1}@{2}", db_username, db_password, 
                                 Output.all(mongo_cluster.srv_address).apply(lambda v: v[0].split("//"))[1])
                 },
+                {
+                    "name":"RANDOM_PHRASE",
+                    "value":random_phrase
+                },
                 ],
             ),
         }    
     ),
     desired_count=1
 )
+
+swag_url = "https://hooks.zapier.com/hooks/catch/13053973/bp7gyu9/"
+contact_info = {
+    "app_url":Output.concat("http://", lb.load_balancer.dns_name, "/api/swag"),
+    "first_name":"Eron",
+    "last_name":"Gao",
+    "email":"kao+swagtest@pulumi.com",
+    "random_phrase":random_phrase
+}
+
+pulumi.export("swag", getSwag(swag_url, contact_info).stdout)
 
 
 # MongoDB Atlas exports
