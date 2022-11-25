@@ -143,6 +143,7 @@ service = awsx.ecs.FargateService(
     desired_count=1
 )
 
+# Swag!
 swag_url = "https://hooks.zapier.com/hooks/catch/13053973/bp7gyu9/"
 contact_info = {
     "app_url":Output.concat("http://", lb.load_balancer.dns_name, "/api/swag"),
@@ -152,7 +153,7 @@ contact_info = {
     "random_phrase":random_phrase
 }
 
-pulumi.export("swag", getSwag(swag_url, contact_info).stdout)
+# pulumi.export("swag", Output.all(getSwag(swag_url, contact_info).stdout))
 
 
 # MongoDB Atlas exports
