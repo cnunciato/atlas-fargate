@@ -19,9 +19,9 @@ cpu = config.get_int("cpu", 1024)
 memory = config.get_int("memory", 1024)
 
 # MongoDB Atlas configs
-db_username = config.get("dbUser", "test-username")
-db_password = config.get_secret_object("dbPassword", "test-password")
-atlas_org_id = config.get("orgID")
+db_username = config.require("dbUser")
+db_password = config.require_secret("dbPassword")
+atlas_org_id = config.require("orgID")
 
 stack = pulumi.get_stack()
 
@@ -142,19 +142,6 @@ service = awsx.ecs.FargateService(
     ),
     desired_count=1
 )
-
-# Swag!
-swag_url = "https://hooks.zapier.com/hooks/catch/13053973/bp7gyu9/"
-contact_info = {
-    "app_url":Output.concat("http://", lb.load_balancer.dns_name, "/api/swag"),
-    "first_name":"Eron",
-    "last_name":"Gao",
-    "email":"kao+swagtest@pulumi.com",
-    "random_phrase":random_phrase
-}
-
-# pulumi.export("swag", Output.all(getSwag(swag_url, contact_info).stdout))
-
 
 # MongoDB Atlas exports
 pulumi.export("mongo cluster id", mongo_cluster.cluster_id)
