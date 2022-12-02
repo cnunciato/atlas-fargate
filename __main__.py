@@ -5,7 +5,6 @@ import pulumi
 from pulumi import Output
 import pulumi_aws as aws
 import pulumi_awsx as awsx
-import pulumi_random as random
 import pulumi_mongodbatlas as mongodb
 
 
@@ -21,8 +20,6 @@ memory = config.get_int("memory", 1024)
 db_username = config.require("dbUser")
 db_password = config.require_secret("dbPassword")
 atlas_org_id = config.require("orgID")
-
-stack = pulumi.get_stack()
 
 # An ECR repository to store our application's container images
 repo = awsx.ecr.Repository("grocery_list_repo")
@@ -110,7 +107,7 @@ service = awsx.ecs.FargateService(
                 environment=[{
                     # Unused unless running dev server
                     "name":"VITE_BACKEND_URL",
-                    "value":"http://localhost:8000" 
+                    "value":"http://localhost:8000"
                 },
                 ],
             ),
@@ -125,12 +122,12 @@ service = awsx.ecs.FargateService(
                 )],
                 environment=[{
                     "name":"DATABASE_URL",
-                    "value":Output.format("mongodb+srv://{0}:{1}@{2}", db_username, db_password, 
+                    "value":Output.format("mongodb+srv://{0}:{1}@{2}", db_username, db_password,
                                 Output.all(mongo_cluster.srv_address).apply(lambda v: v[0].split("//"))[1])
                 },
                 ],
             ),
-        }    
+        }
     ),
     desired_count=1
 )
@@ -138,8 +135,8 @@ service = awsx.ecs.FargateService(
 # MongoDB Atlas exports
 pulumi.export("mongo cluster id", mongo_cluster.cluster_id)
 pulumi.export("mongo url", mongo_cluster.srv_address)
-pulumi.export("mongo connection string", 
-    Output.format("mongodb+srv://{0}:{1}@{2}", db_username, db_password, 
+pulumi.export("mongo connection string",
+    Output.format("mongodb+srv://{0}:{1}@{2}", db_username, db_password,
         Output.all(mongo_cluster.srv_address).apply(lambda v: v[0].split("//"))[1])
 )
 # AWS exports

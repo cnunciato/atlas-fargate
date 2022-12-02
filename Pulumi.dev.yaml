@@ -1,0 +1,5 @@
+config:
+  atlas-fargate:dbPassword:
+    secure: AAABAOADskJDqkW0xPi1YVbYicydsvaij030Ap45O3t/Y5qnhfTTRuMSHQ==
+  atlas-fargate:dbUser: myuser
+  atlas-fargate:orgID: 637bf63cab57a003bba472f4
