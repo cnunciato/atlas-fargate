@@ -7,7 +7,6 @@ import pulumi_aws as aws
 import pulumi_awsx as awsx
 import pulumi_random as random
 import pulumi_mongodbatlas as mongodb
-from swag import getSwag
 
 
 # Get configuration
@@ -24,9 +23,6 @@ db_password = config.require_secret("dbPassword")
 atlas_org_id = config.require("orgID")
 
 stack = pulumi.get_stack()
-
-# Random phrase used to verify for swag
-random_phrase = random.RandomPet("random-phrase")
 
 # An ECR repository to store our application's container images
 repo = awsx.ecr.Repository("grocery_list_repo")
