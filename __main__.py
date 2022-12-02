@@ -128,10 +128,6 @@ service = awsx.ecs.FargateService(
                     "value":Output.format("mongodb+srv://{0}:{1}@{2}", db_username, db_password, 
                                 Output.all(mongo_cluster.srv_address).apply(lambda v: v[0].split("//"))[1])
                 },
-                {
-                    "name":"RANDOM_PHRASE",
-                    "value":random_phrase
-                },
                 ],
             ),
         }    
